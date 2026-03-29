@@ -1,87 +1,75 @@
-import { useNavigate } from 'react-router-dom';
-import { useGame } from '../context/GameContext';
-import DeckCard from '../components/DeckCard';
-import { Zap, Users, Star } from 'lucide-react';
+import React from 'react'
+import { Link } from 'react-router-dom'
+import { Play, TrendingUp, Award, Settings, Layers, Mic } from 'lucide-react'
+import { useGame } from '../context/GameContext'
 
-export default function Home() {
-  const navigate = useNavigate();
-  const { allDecks, settings, stats } = useGame();
-
-  // Show featured decks (first 4 built-in)
-  const featured = allDecks.filter(d => !d.isCustom).slice(0, 4);
-  const recent = allDecks.filter(d => d.isCustom).slice(0, 3);
+function Home() {
+  const { stats, allDecks } = useGame()
+  const featured = allDecks.slice(0, 3)
 
   return (
     <div className="page fade-in">
-      {/* Hero */}
-      <div style={{ textAlign: 'center', paddingTop: 16, paddingBottom: 24 }}>
-        <div className="hero-logo">MyGame</div>
-        <div className="hero-tagline">The ultimate free party charades game 🎉</div>
+      <div className="flex-col items-center text-center gap-2" style={{ marginBottom: '40px' }}>
+        <h1 className="hero-logo">MyGame</h1>
+        <p className="text-sub" style={{ fontWeight: 500 }}>The ultimate free party charades game 🎊</p>
       </div>
 
-      {/* Stats bar */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 24 }}>
-        {[
-          { icon: Zap, label: 'Games', val: stats.gamesPlayed },
-          { icon: Star, label: 'Correct', val: stats.totalCorrect },
-          { icon: Users, label: 'Best Streak', val: stats.bestStreak },
-        ].map(({ icon: Icon, label, val }) => (
-          <div key={label} className="card" style={{ padding: '14px 10px', textAlign: 'center' }}>
-            <Icon size={18} color="var(--primary-light)" style={{ marginBottom: 4 }} />
-            <div style={{ fontSize: '1.35rem', fontWeight: 800 }}>{val}</div>
-            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{label}</div>
+      <div className="card" style={{ padding: '20px', marginBottom: '32px' }}>
+        <div className="flex justify-between items-center">
+          <div className="flex-col">
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Lifetime Stats</span>
+            <div className="flex gap-4" style={{ marginTop: '12px' }}>
+              <div className="flex-col">
+                <span style={{ fontSize: '1.25rem', fontWeight: 900 }}>{stats.gamesPlayed}</span>
+                <span style={{ fontSize: '0.65rem', color: 'var(--text-sub)', fontWeight: 600 }}>GAMES</span>
+              </div>
+              <div className="flex-col">
+                <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--success)' }}>{stats.totalCorrect}</span>
+                <span style={{ fontSize: '0.65rem', color: 'var(--text-sub)', fontWeight: 600 }}>CORRECT</span>
+              </div>
+              <div className="flex-col">
+                <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--primary-light)' }}>{stats.bestStreak}</span>
+                <span style={{ fontSize: '0.65rem', color: 'var(--text-sub)', fontWeight: 600 }}>BEST STREAK</span>
+              </div>
+            </div>
           </div>
-        ))}
+          <Link to="/achievements">
+            <Award className="nav-icon" style={{ color: 'var(--warning)', width: '32px', height: '32px' }} />
+          </Link>
+        </div>
       </div>
 
-      {/* Quick Play CTA */}
-      <button
-        className="btn btn-primary btn-lg w-full"
-        style={{ marginBottom: 28, fontSize: '1.1rem' }}
-        onClick={() => navigate('/decks')}
-      >
-        🎮 Play Now
-      </button>
+      <Link to="/decks" className="btn btn-primary btn-lg w-full" style={{ marginBottom: '40px' }}>
+        <Play fill="white" size={24} />
+        Play Now
+      </Link>
 
-      {/* Featured Decks */}
-      <div className="section-title">Featured Decks</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h2 style={{ fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.1em' }}>Featured Decks</h2>
+        <Link to="/decks" style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary-light)' }}>See All</Link>
+      </div>
+
+      <div className="flex-col gap-2">
         {featured.map(deck => (
-          <DeckCard
-            key={deck.id}
-            deck={deck}
-            onClick={() => navigate(`/deck/${deck.id}`)}
-          />
+          <Link key={deck.id} to={`/deck/${deck.id}`} className="card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ fontSize: '1.5rem', background: 'var(--bg-3)', padding: '10px', borderRadius: '12px' }}>{deck.emoji}</div>
+            <div className="flex-col">
+              <span style={{ fontWeight: 800 }}>{deck.name}</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-sub)' }}>{deck.words.length} words</span>
+            </div>
+          </Link>
         ))}
       </div>
 
-      {/* Custom Decks preview */}
-      {recent.length > 0 && (
-        <>
-          <div className="section-title">Your Custom Decks</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-            {recent.map(deck => (
-              <DeckCard
-                key={deck.id}
-                deck={deck}
-                onClick={() => navigate(`/deck/${deck.id}`)}
-              />
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* Tips */}
-      <div className="card" style={{ padding: 16 }}>
-        <div style={{ fontWeight: 700, marginBottom: 8, fontSize: '0.9rem' }}>💡 How to Play</div>
-        <ul style={{ fontSize: '0.85rem', color: 'var(--text-sub)', lineHeight: 1.8, paddingLeft: 18 }}>
-          <li>Pick a deck and start a round</li>
-          <li>Hold your phone to your forehead</li>
-          <li>Tilt <strong>forward ↓</strong> = Correct ✅</li>
-          <li>Tilt <strong>backward ↑</strong> = Skip ❌</li>
-          <li>Or tap the big ✅/❌ buttons on screen</li>
-        </ul>
-      </div>
+      <nav className="navbar">
+        <Link to="/" className="nav-item active"><Layers className="nav-icon" /><span>Home</span></Link>
+        <Link to="/decks" className="nav-item"><Layers className="nav-icon" /><span>Decks</span></Link>
+        <Link to="/create" className="nav-item"><Mic className="nav-icon" /><span>Create</span></Link>
+        <Link to="/achievements" className="nav-item"><Award className="nav-icon" /><span>Awards</span></Link>
+        <Link to="/settings" className="nav-item"><Settings className="nav-icon" /><span>Settings</span></Link>
+      </nav>
     </div>
-  );
+  )
 }
+
+export default Home

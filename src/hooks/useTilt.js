@@ -1,92 +1,65 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react'
 
-export function useTilt(onTiltForward, onTiltBackward, enabled = true) {
-  const lastTilt = useRef(null);
-  const cooldown = useRef(false);
-  const cooldownTimer = useRef(null);
+export function useTilt(onCorrect, onSkip, isActive) {
+  const [permission, setPermission] = useState('unknown')
+  const lastTiltRef = useRef(null) // 'up', 'down', 'neutral'
+  const cooldownRef = useRef(false)
+
+  const requestPermission = async () => {
+    if (typeof DeviceOrientationEvent === 'undefined') return false
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try {
+        const res = await DeviceOrientationEvent.requestPermission()
+        setPermission(res)
+        return res === 'granted'
+      } catch (e) {
+        setPermission('denied')
+        return false
+      }
+    } else {
+      setPermission('granted')
+      return true
+    }
+  }
 
   useEffect(() => {
-    if (!enabled) {
-      return undefined;
-    }
+    if (!isActive || permission !== 'granted') return
 
-    const FORWARD_THRESHOLD = 55;
-    const BACKWARD_THRESHOLD = -25;
-    const COOLDOWN_MS = 750;
+    const handleMotion = (event) => {
+      if (cooldownRef.current) return
+      
+      // Beta: front-to-back tilt (-90 to 90)
+      // When phone is on forehead:
+      // ~0 is neutral (screen facing forward)
+      // 60+ is tilt back (looking skyward) -> SKIP
+      // -60- is tilt forward (looking groundward) -> CORRECT
+      const beta = event.beta
 
-    const runCooldown = () => {
-      cooldown.current = true;
-      if (cooldownTimer.current) clearTimeout(cooldownTimer.current);
-      cooldownTimer.current = setTimeout(() => {
-        cooldown.current = false;
-      }, COOLDOWN_MS);
-    };
-
-    const handleTiltValue = (beta) => {
-      if (typeof beta !== 'number' || Number.isNaN(beta)) return;
-      if (cooldown.current) {
-        lastTilt.current = beta;
-        return;
-      }
-
-      const previous = lastTilt.current;
-      if (previous === null) {
-        lastTilt.current = beta;
-        return;
-      }
-
-      // Tilt forward (phone faces floor) => correct
-      if (beta > FORWARD_THRESHOLD && previous <= FORWARD_THRESHOLD) {
-        lastTilt.current = beta;
-        runCooldown();
-        onTiltForward?.();
-        return;
-      }
-
-      // Tilt backward (phone faces ceiling) => skip
-      if (beta < BACKWARD_THRESHOLD && previous >= BACKWARD_THRESHOLD) {
-        lastTilt.current = beta;
-        runCooldown();
-        onTiltBackward?.();
-        return;
-      }
-
-      lastTilt.current = beta;
-    };
-
-    const handleOrientation = (e) => {
-      handleTiltValue(e.beta);
-    };
-
-    window.addEventListener('deviceorientation', handleOrientation, { passive: true });
-    return () => {
-      window.removeEventListener('deviceorientation', handleOrientation);
-      if (cooldownTimer.current) clearTimeout(cooldownTimer.current);
-    };
-  }, [onTiltForward, onTiltBackward, enabled]);
-
-  // Request permission on iOS 13+
-  const requestPermission = useCallback(async () => {
-    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-      try {
-        const result = await DeviceOrientationEvent.requestPermission();
-        return result === 'granted';
-      } catch {
-        return false;
+      if (beta > 65) {
+        if (lastTiltRef.current !== 'up') {
+          lastTiltRef.current = 'up'
+          onSkip()
+          triggerCooldown()
+        }
+      } else if (beta < -65) {
+        if (lastTiltRef.current !== 'down') {
+          lastTiltRef.current = 'down'
+          onCorrect()
+          triggerCooldown()
+        }
+      } else if (Math.abs(beta) < 20) {
+        lastTiltRef.current = 'neutral'
       }
     }
 
-    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-      try {
-        const result = await DeviceMotionEvent.requestPermission();
-        return result === 'granted';
-      } catch {
-        return false;
-      }
+    const triggerCooldown = () => {
+      cooldownRef.current = true
+      setTimeout(() => { cooldownRef.current = false }, 1000)
     }
 
-    return true;
-  }, []);
+    window.addEventListener('deviceorientation', handleMotion)
+    return () => window.removeEventListener('deviceorientation', handleMotion)
+  }, [isActive, permission, onCorrect, onSkip])
 
-  return { requestPermission };
+  return { permission, requestPermission }
 }
