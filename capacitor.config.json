@@ -1,0 +1,19 @@
+{
+  "appId": "com.mygame.party",
+  "appName": "MyGame",
+  "webDir": "dist",
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#080c1a",
+      "showSpinner": false
+    }
+  },
+  "android": {
+    "allowMixedContent": true,
+    "useLegacyBridge": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
